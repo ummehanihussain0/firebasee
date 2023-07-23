@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="./style.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    <h1 class="container" style="text-align: center;">Login Form</h1>
+    <form>
+        <div class="imgcontainer">
+            <img src="./img.png" alt="Avatar" class="avatar">
+        </div>
+        <div class="container">
+            <label for="uname"><b>Username</b></label>
+            <input id="name" type="text" placeholder="Enter Username" name="uname">
+            <label for="psw"><b>Password</b></label>
+            <input id="password" type="password" placeholder="Enter Password" name="psw">
+        </div>
+    </form>
+    <div class="container">
+        <button onclick="signup()">Signup</button>
+        <button onclick="logIn()">Login</button>
+    </div>
+
+    <div class="container" id="userdata">
+        <!-- User data will be displayed here -->
+    </div>
+
+    <div class="container">
+        <input type="text" id="updateEmail" placeholder="New Email">
+        <button onclick="updateEmail()">Update Email</button>
+
+        <input type="password" id="updatePassword" placeholder="New Password">
+        <button onclick="updatePassword()">Update Password</button>
+
+        <input type="password" id="deletePassword" placeholder="Confirm Password">
+        <button onclick="deleteUserData()">Delete Account</button>
+    </div>
+
+    <div class="container">
+        <span class="psw">Forgot <a href="#">password?</a></span>
+    </div>
+
+    <!-- Add Firebase JavaScript SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-database.js"></script>
+
+    <script type="text/javascript">
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAf2smZBKLerNAB5wxWi-ysBAF3yuDJQ-g",
+  authDomain: "hani0-fa553.firebaseapp.com",
+  databaseURL: "https://hani0-fa553-default-rtdb.firebaseio.com",
+  projectId: "hani0-fa553",
+  storageBucket: "hani0-fa553.appspot.com",
+  messagingSenderId: "203751539987",
+  appId: "1:203751539987:web:e1bc4484219ff6630e86e6",
+  measurementId: "G-Q5N3QMPRW2"
+};
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        // Initialize Realtime Database and get a reference to the service
+        const database = firebase.database();
+
+        function signup() {
+            let email = document.getElementById("name").value;
+            let password = document.getElementById("password").value;
+            firebase.auth().createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Signed in
+                    var user = userCredential.user;
+                    writeUserData(user.uid, email, password);
+                    console.log("user created successfully.... \n", user);
+                    // ...
+                })
+                .catch((error) => {
+                    var errorCode = error.code;
+                    var errorMessage = error.message;
+                    console.error("Login error:", errorCode, errorMessage);
+                });
+        }
+
+        function logIn() {
+            let email = document.getElementById("name").value;
+            let password = document.getElementById("password").value;
+
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    var user = userCredential.user;
+                    console.log('User signed in successfully... \n', user);
+                    displayUserData(user.uid);
+                })
+                .catch((error) => {
+                    var errorCode = error.code;
+                    var errorMessage = error.message;
+                    console.log("Login error:", errorCode, errorMessage);
+                });
+        }
+
+        function writeUserData(userId, email, password) {
+            firebase.database().ref('users/' + userId).set({
+                userId: userId,
+                email: email,
+                password: password
+            });
+        }
+
+        function displayUserData(userId) {
+            firebase.database().ref('users/' + userId).once('value')
+                .then((snapshot) => {
+                    var userData = snapshot.val();
+                    var userDataContainer = document.getElementById('userdata');
+                    userDataContainer.innerHTML = `
+                        <p><strong>User ID:</strong> ${userData.userId}</p>
+                        <p><strong>Email:</strong> ${userData.email}</p>
+                        <p><strong>Password:</strong> ${userData.password}</p>
+                    `;
+                })
+                .catch((error) => {
+                    console.error("Error displaying user data:", error);
+                });
+        }
+
+        function updateEmail() {
+            let userId = firebase.auth().currentUser.uid;
+            let newEmail = document.getElementById("updateEmail").value;
+
+            if (newEmail !== "") {
+                firebase.database().ref('users/' + userId).update({
+                    email: newEmail
+                });
+            }
+        }
+
+        function updatePassword() {
+            let userId = firebase.auth().currentUser.uid;
+            let newPassword = document.getElementById("updatePassword").value;
+
+            if (newPassword !== "") {
+                firebase.database().ref('users/' + userId).update({
+                    password: newPassword
+                });
+            }
+        }
+
+        function deleteUserData() {
+            let userId = firebase.auth().currentUser.uid;
+            let confirmPassword = document.getElementById("deletePassword").value;
+
+            let user = firebase.auth().currentUser;
+            let credential = firebase.auth.EmailAuthProvider.credential(user.email, confirmPassword);
+
+            user.reauthenticateWithCredential(credential)
+                .then(() => {
+                    // User successfully re-authenticated, now proceed with deletion
+                    firebase.database().ref('users/' + userId).remove();
+                    document.getElementById('userdata').innerHTML = ''; // Clear displayed data after deletion.
+                })
+                .catch((error) => {
+                    console.error("Error re-authenticating user:", error);
+                });
+        }
+    </script>
+</body>
+
+</html>
